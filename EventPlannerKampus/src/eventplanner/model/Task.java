@@ -30,6 +30,20 @@ public class Task {
         this.taskCost = taskCost;
     }
 
+    /**
+     * Konstruktor berparameter untuk mendefinisikan rincian tugas dengan ID yang di-generate otomatis.
+     * 
+     * @param taskName nama deskriptif dari tugas
+     * @param difficulty tingkat kesulitan tugas (digunakan untuk beban kerja)
+     * @param taskCost anggaran atau biaya keuangan yang diperlukan untuk tugas
+     */
+    public Task(String taskName, int difficulty, double taskCost) {
+        this.taskId = java.util.UUID.randomUUID().toString();
+        this.taskName = taskName;
+        this.difficulty = difficulty;
+        this.taskCost = taskCost;
+    }
+
     // Pengakses (Getter) dan Pengubah (Setter)
 
     public String getTaskId() {

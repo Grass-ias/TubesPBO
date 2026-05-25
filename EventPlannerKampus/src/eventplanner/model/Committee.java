@@ -33,6 +33,19 @@ public class Committee {
     }
 
     /**
+     * Konstruktor untuk inisialisasi awal panitia dengan beban kerja nol dan ID yang di-generate otomatis.
+     * 
+     * @param name nama anggota panitia
+     * @param maxCapacity kapasitas beban kerja maksimal yang diperbolehkan
+     */
+    public Committee(String name, int maxCapacity) {
+        this.committeeId = java.util.UUID.randomUUID().toString();
+        this.name = name;
+        this.maxCapacity = maxCapacity;
+        this.currentWorkload = 0;
+    }
+
+    /**
      * Konstruktor lengkap untuk inisialisasi panitia beserta beban kerja saat ini.
      * 
      * @param committeeId ID panitia

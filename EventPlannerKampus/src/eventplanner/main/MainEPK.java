@@ -22,7 +22,7 @@ public class MainEPK {
 
         // 1. Inisialisasi Acara dan Repositori Tugas
         System.out.println("--- 1. Pengujian Event dan TaskRepository ---");
-        Event event = new Event("E01", "Dies Natalis Campus Festival", 10000000.0);
+        Event event = new Event("EV001", "Dies Natalis Campus Festival", 10000000.0);
         System.out.println("Acara Berhasil Dibuat: " + event);
 
         TaskRepository<Task> taskRepo = new TaskRepository<>();

@@ -10,6 +10,7 @@ import eventplanner.exception.OverBudgetException;
  * Mengimplementasikan antarmuka Reportable untuk menyediakan laporan berkala divisi.
  */
 public abstract class Division implements Reportable {
+    protected String divisionId;
     protected String divisionName;
     protected double allocatedBudget;
 
@@ -20,11 +21,20 @@ public abstract class Division implements Reportable {
      * @param allocatedBudget jumlah anggaran yang dialokasikan untuk divisi
      */
     public Division(String divisionName, double allocatedBudget) {
+        this.divisionId = java.util.UUID.randomUUID().toString();
         this.divisionName = divisionName;
         this.allocatedBudget = allocatedBudget;
     }
 
     // Pengakses (Getter) dan Pengubah (Setter)
+
+    public String getDivisionId() {
+        return divisionId;
+    }
+
+    public void setDivisionId(String divisionId) {
+        this.divisionId = divisionId;
+    }
 
     public String getDivisionName() {
         return divisionName;

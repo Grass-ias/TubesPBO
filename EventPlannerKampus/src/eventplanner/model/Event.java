@@ -17,6 +17,7 @@ public class Event {
     // Atribut Koleksi
     private List<Division> daftarDivisi = new ArrayList<>();
     private List<Committee> daftarPanitia = new ArrayList<>();
+    private List<Task> daftarTugas = new ArrayList<>();
 
     /**
      * Konstruktor default.
@@ -33,6 +34,18 @@ public class Event {
      */
     public Event(String eventId, String eventName, double totalBudget) {
         this.eventId = eventId;
+        this.eventName = eventName;
+        this.totalBudget = totalBudget;
+    }
+
+    /**
+     * Konstruktor berparameter untuk mendefinisikan rincian acara dengan ID yang di-generate otomatis.
+     * 
+     * @param eventName nama dari acara tersebut
+     * @param totalBudget total anggaran yang dialokasikan untuk keseluruhan acara
+     */
+    public Event(String eventName, double totalBudget) {
+        this.eventId = java.util.UUID.randomUUID().toString();
         this.eventName = eventName;
         this.totalBudget = totalBudget;
     }
@@ -64,6 +77,15 @@ public class Event {
     }
 
     /**
+     * Menambahkan tugas ke dalam daftar tugas acara.
+     * 
+     * @param tugas tugas yang akan ditambahkan
+     */
+    public void tambahTugas(Task tugas) {
+        this.daftarTugas.add(tugas);
+    }
+
+    /**
      * Membuat laporan acara secara komprehensif, merangkum data event
      * dan laporan masing-masing divisi secara polimorfik.
      * 
@@ -75,7 +97,7 @@ public class Event {
         sb.append("               LAPORAN ACARA KAMPUS               \n");
         sb.append("==================================================\n");
         sb.append("Nama Event        : ").append(eventName).append("\n");
-        sb.append("Sisa Total Budget : ").append(totalBudget).append("\n");
+        sb.append("Sisa Total Budget : ").append(String.format("Rp %,.0f", totalBudget)).append("\n");
         sb.append("--------------------------------------------------\n");
         sb.append("Detail Laporan per Divisi:\n");
         if (daftarDivisi.isEmpty()) {
@@ -123,6 +145,10 @@ public class Event {
         return daftarPanitia;
     }
 
+    public List<Task> getDaftarTugas() {
+        return daftarTugas;
+    }
+
     @Override
     public String toString() {
         return "Event{" +
@@ -131,6 +157,7 @@ public class Event {
                 ", totalBudget=" + totalBudget +
                 ", jumlahDivisi=" + daftarDivisi.size() +
                 ", jumlahPanitia=" + daftarPanitia.size() +
+                ", jumlahTugas=" + daftarTugas.size() +
                 '}';
     }
 }
