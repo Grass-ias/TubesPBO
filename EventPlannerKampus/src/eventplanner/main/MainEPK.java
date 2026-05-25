@@ -45,22 +45,36 @@ public class MainEPK {
         }
         System.out.println();
 
-        // 2. Inisialisasi Divisi
-        System.out.println("--- 2. Pengujian Divisi & Reportable (buatLaporan) ---");
+        // 2. Inisialisasi Divisi dan Registrasi ke Event (Agregasi)
+        System.out.println("--- 2. Pengujian Divisi & Registrasi ke Event (Agregasi) ---");
         Division acaraDiv = new AcaraDivision(1000000.0);
         Division logisticDiv = new LogisticDivision(4000000.0); // Anggaran terbatas
         Division konsumsiDiv = new KonsumsiDivision(5000000.0); // Anggaran memadai
 
+        try {
+            event.tambahDivisi(acaraDiv);
+            event.tambahDivisi(logisticDiv);
+            event.tambahDivisi(konsumsiDiv);
+            System.out.println("Seluruh divisi awal berhasil didaftarkan ke event.");
+        } catch (OverBudgetException e) {
+            System.out.println("Gagal mendaftarkan divisi ke event: " + e.getMessage());
+        }
         System.out.println(acaraDiv.buatLaporan());
         System.out.println(logisticDiv.buatLaporan());
         System.out.println(konsumsiDiv.buatLaporan());
         System.out.println();
 
-        // 3. Inisialisasi Anggota Panitia (Committee)
-        System.out.println("--- 3. Pengujian Beban Kerja Panitia (Committee) ---");
+        // 3. Inisialisasi Anggota Panitia (Committee) dan Registrasi ke Event (Agregasi)
+        System.out.println("--- 3. Pengujian Beban Kerja Panitia & Registrasi ke Event (Agregasi) ---");
         Committee comm1 = new Committee("C01", "Budi (Staf Acara)", 5); // Kapasitas maksimum 5
         Committee comm2 = new Committee("C02", "Siti (Staf Logistik)", 3); // Kapasitas maksimum 3
         Committee comm3 = new Committee("C03", "Andi (Staf Konsumsi)", 2); // Kapasitas kecil 2
+        
+        event.tambahPanitia(comm1);
+        event.tambahPanitia(comm2);
+        event.tambahPanitia(comm3);
+        System.out.println("Seluruh panitia berhasil didaftarkan ke event.");
+
         System.out.println(comm1);
         System.out.println(comm2);
         System.out.println(comm3);
@@ -148,11 +162,28 @@ public class MainEPK {
         }
         System.out.println();
 
-        // 5. Laporan Akhir Divisi
-        System.out.println("--- 5. Laporan Akhir Seluruh Divisi ---");
+        // Skenario F: Skenario Penolakan Divisi Baru karena Total Budget Event Habis
+        System.out.println("--- Skenario Tambahan: Uji Coba OverBudget pada Registrasi Divisi Baru ---");
+        Division divisiTambahan = new LogisticDivision(500000.0); // Memerlukan budget 500.000
+        try {
+            System.out.println("Mencoba mendaftarkan divisi baru: " + divisiTambahan.getDivisionName() 
+                    + " dengan alokasi budget: " + divisiTambahan.getAllocatedBudget());
+            event.tambahDivisi(divisiTambahan);
+            System.out.println("Sukses menambahkan divisi tambahan!");
+        } catch (OverBudgetException e) {
+            System.out.println("Gagal (Diharapkan)! Jenis Kesalahan: OverBudgetException | Pesan: " + e.getMessage());
+        }
+        System.out.println();
+
+        // 5. Laporan Akhir Divisi dan Laporan Acara secara Polimorfik
+        System.out.println("--- 5. Laporan Akhir Seluruh Divisi dan Acara ---");
         System.out.println(acaraDiv.buatLaporan());
         System.out.println(logisticDiv.buatLaporan());
         System.out.println(konsumsiDiv.buatLaporan());
+        System.out.println();
+        
+        // Menampilkan Laporan Acara lengkap yang berisi rincian sisa budget & laporan divisi
+        System.out.println(event.buatLaporanAcara());
         System.out.println("==================================================");
     }
 }
