@@ -53,7 +53,7 @@ public class DivisionDAO {
 
     public List<Division> getDivisionsByEvent(String id_event) {
         List<Division> list = new ArrayList<>();
-        String sql = "SELECT * FROM tabel_divisi WHERE id_event = ?";
+        String sql = "SELECT * FROM tabel_divisi WHERE id_event = ? ORDER BY nama_divisi";
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, id_event);

@@ -57,7 +57,7 @@ public class EventDAO {
 
     public List<Event> getAllEvents() {
         List<Event> list = new ArrayList<>();
-        String sql = "SELECT * FROM tabel_event";
+        String sql = "SELECT * FROM tabel_event ORDER BY tanggal_mulai IS NULL, tanggal_mulai, nama_event";
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {

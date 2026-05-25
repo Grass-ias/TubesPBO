@@ -52,7 +52,7 @@ public class PanitiaDAO {
 
     public List<Committee> getPanitiaByEvent(String id_event) {
         List<Committee> list = new ArrayList<>();
-        String sql = "SELECT * FROM tabel_panitia WHERE id_event = ?";
+        String sql = "SELECT * FROM tabel_panitia WHERE id_event = ? ORDER BY nama_panitia";
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, id_event);
@@ -95,7 +95,7 @@ public class PanitiaDAO {
 
     public List<Committee> getPanitiaForTaskExecution(String id_event, int difficulty) {
         List<Committee> list = new ArrayList<>();
-        String sql = "SELECT * FROM tabel_panitia WHERE id_event = ? AND (current_workload + ?) <= max_capacity";
+        String sql = "SELECT * FROM tabel_panitia WHERE id_event = ? AND (current_workload + ?) <= max_capacity ORDER BY current_workload ASC, nama_panitia";
         try (Connection conn = DatabaseConnection.getInstance().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, id_event);

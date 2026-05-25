@@ -1,7 +1,9 @@
 package eventplanner.database;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -15,7 +17,7 @@ public class DatabaseConnection {
     private static final String SERVER_URL = "jdbc:mysql://localhost:3306/?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     private static final String DB_URL = "jdbc:mysql://localhost:3306/db_event_kampus?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     private static final String USER = "root";
-    private static final String PASSWORD = "12edd3aD";
+    private static final String PASSWORD = "Ferdiana028";
 
     private DatabaseConnection() {
         try {
@@ -87,11 +89,41 @@ public class DatabaseConnection {
                     "task_cost DOUBLE NOT NULL," +
                     "id_event VARCHAR(50)," +
                     "id_panitia VARCHAR(50)," +
+                    "id_divisi VARCHAR(50)," +
+                    "deadline VARCHAR(20)," +
+                    "priority VARCHAR(20) DEFAULT 'Sedang'," +
+                    "status VARCHAR(20) DEFAULT 'Direncanakan'," +
+                    "completed_at VARCHAR(30)," +
                     "FOREIGN KEY (id_event) REFERENCES tabel_event(id_event) ON DELETE CASCADE," +
                     "FOREIGN KEY (id_panitia) REFERENCES tabel_panitia(id_panitia) ON DELETE SET NULL" +
                     ")");
+
+            ensureColumn(conn, "tabel_tugas", "id_divisi", "id_divisi VARCHAR(50)");
+            ensureColumn(conn, "tabel_tugas", "deadline", "deadline VARCHAR(20)");
+            ensureColumn(conn, "tabel_tugas", "priority", "priority VARCHAR(20) DEFAULT 'Sedang'");
+            ensureColumn(conn, "tabel_tugas", "status", "status VARCHAR(20) DEFAULT 'Direncanakan'");
+            ensureColumn(conn, "tabel_tugas", "completed_at", "completed_at VARCHAR(30)");
+
+            stmt.executeUpdate("UPDATE tabel_tugas SET status = 'Selesai', completed_at = COALESCE(completed_at, 'Data lama') " +
+                    "WHERE id_panitia IS NOT NULL AND (status IS NULL OR status = 'Direncanakan')");
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void ensureColumn(Connection conn, String tableName, String columnName, String definition) throws SQLException {
+        DatabaseMetaData metaData = conn.getMetaData();
+        try (ResultSet columns = metaData.getColumns(conn.getCatalog(), null, tableName, null)) {
+            while (columns.next()) {
+                String existingColumn = columns.getString("COLUMN_NAME");
+                if (columnName.equalsIgnoreCase(existingColumn)) {
+                    return;
+                }
+            }
+        }
+
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN " + definition);
         }
     }
 }

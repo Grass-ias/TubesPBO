@@ -8,6 +8,12 @@ public class Task {
     private String taskName;
     private int difficulty;
     private double taskCost;
+    private String divisionId;
+    private String committeeId;
+    private String deadline;
+    private String priority;
+    private String status;
+    private String completedAt;
 
     /**
      * Konstruktor default.
@@ -28,6 +34,8 @@ public class Task {
         this.taskName = taskName;
         this.difficulty = difficulty;
         this.taskCost = taskCost;
+        this.priority = "Sedang";
+        this.status = "Direncanakan";
     }
 
     /**
@@ -42,6 +50,8 @@ public class Task {
         this.taskName = taskName;
         this.difficulty = difficulty;
         this.taskCost = taskCost;
+        this.priority = "Sedang";
+        this.status = "Direncanakan";
     }
 
     // Pengakses (Getter) dan Pengubah (Setter)
@@ -78,6 +88,62 @@ public class Task {
         this.taskCost = taskCost;
     }
 
+    public String getDivisionId() {
+        return divisionId;
+    }
+
+    public void setDivisionId(String divisionId) {
+        this.divisionId = divisionId;
+    }
+
+    public String getCommitteeId() {
+        return committeeId;
+    }
+
+    public void setCommitteeId(String committeeId) {
+        this.committeeId = committeeId;
+    }
+
+    public String getDeadline() {
+        return deadline;
+    }
+
+    public void setDeadline(String deadline) {
+        this.deadline = deadline;
+    }
+
+    public String getPriority() {
+        return priority == null || priority.isBlank() ? "Sedang" : priority;
+    }
+
+    public void setPriority(String priority) {
+        this.priority = priority;
+    }
+
+    public String getStatus() {
+        return status == null || status.isBlank() ? "Direncanakan" : status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(String completedAt) {
+        this.completedAt = completedAt;
+    }
+
+    public boolean isCompleted() {
+        return "Selesai".equalsIgnoreCase(getStatus());
+    }
+
+    public boolean isAssigned() {
+        return committeeId != null && !committeeId.isBlank();
+    }
+
     @Override
     public String toString() {
         return "Task{" +
@@ -85,6 +151,11 @@ public class Task {
                 ", taskName='" + taskName + '\'' +
                 ", difficulty=" + difficulty +
                 ", taskCost=" + taskCost +
+                ", divisionId='" + divisionId + '\'' +
+                ", committeeId='" + committeeId + '\'' +
+                ", deadline='" + deadline + '\'' +
+                ", priority='" + priority + '\'' +
+                ", status='" + status + '\'' +
                 '}';
     }
 }

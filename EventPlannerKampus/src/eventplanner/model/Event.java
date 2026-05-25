@@ -134,7 +134,17 @@ public class Event {
         sb.append("               LAPORAN ACARA KAMPUS               \n");
         sb.append("==================================================\n");
         sb.append("Nama Event        : ").append(eventName).append("\n");
-        sb.append("Sisa Total Budget : ").append(String.format("Rp %,.0f", totalBudget)).append("\n");
+        sb.append("Jadwal            : ").append(nullToDash(tanggalMulai)).append(" s.d. ")
+                .append(nullToDash(tanggalSelesai)).append("\n");
+        sb.append("Waktu             : ").append(nullToDash(waktuMulai)).append(" - ")
+                .append(nullToDash(waktuSelesai)).append("\n");
+        sb.append("Sisa Dana Event   : ").append(String.format("Rp %,.0f", totalBudget)).append("\n");
+        sb.append("--------------------------------------------------\n");
+        sb.append("Ringkasan Operasional:\n");
+        sb.append("Total Divisi      : ").append(daftarDivisi.size()).append("\n");
+        sb.append("Total Panitia     : ").append(daftarPanitia.size()).append("\n");
+        sb.append("Total Tugas       : ").append(daftarTugas.size()).append("\n");
+        sb.append("Tugas Selesai     : ").append(hitungTugasSelesai()).append("\n");
         sb.append("--------------------------------------------------\n");
         sb.append("Detail Laporan per Divisi:\n");
         if (daftarDivisi.isEmpty()) {
@@ -144,8 +154,35 @@ public class Event {
                 sb.append(" - ").append(div.buatLaporan()).append("\n");
             }
         }
+        sb.append("--------------------------------------------------\n");
+        sb.append("Daftar Tugas:\n");
+        if (daftarTugas.isEmpty()) {
+            sb.append(" - (Belum ada tugas yang direncanakan)\n");
+        } else {
+            for (Task task : daftarTugas) {
+                sb.append(" - ").append(task.getTaskName())
+                        .append(" | Prioritas: ").append(task.getPriority())
+                        .append(" | Deadline: ").append(nullToDash(task.getDeadline()))
+                        .append(" | Status: ").append(task.getStatus())
+                        .append("\n");
+            }
+        }
         sb.append("==================================================");
         return sb.toString();
+    }
+
+    private int hitungTugasSelesai() {
+        int count = 0;
+        for (Task task : daftarTugas) {
+            if (task.isCompleted()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private String nullToDash(String value) {
+        return value == null || value.isBlank() ? "-" : value;
     }
 
     // Pengakses (Getter) dan Pengubah (Setter)
