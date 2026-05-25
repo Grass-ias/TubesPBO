@@ -13,6 +13,10 @@ public class Event {
     private String eventId;
     private String eventName;
     private double totalBudget;
+    private String tanggalMulai;
+    private String tanggalSelesai;
+    private String waktuMulai;
+    private String waktuSelesai;
     
     // Atribut Koleksi
     private List<Division> daftarDivisi = new ArrayList<>();
@@ -48,6 +52,39 @@ public class Event {
         this.eventId = java.util.UUID.randomUUID().toString();
         this.eventName = eventName;
         this.totalBudget = totalBudget;
+    }
+
+    // Getters and Setters for Date and Time
+    public String getTanggalMulai() {
+        return tanggalMulai;
+    }
+
+    public void setTanggalMulai(String tanggalMulai) {
+        this.tanggalMulai = tanggalMulai;
+    }
+
+    public String getTanggalSelesai() {
+        return tanggalSelesai;
+    }
+
+    public void setTanggalSelesai(String tanggalSelesai) {
+        this.tanggalSelesai = tanggalSelesai;
+    }
+
+    public String getWaktuMulai() {
+        return waktuMulai;
+    }
+
+    public void setWaktuMulai(String waktuMulai) {
+        this.waktuMulai = waktuMulai;
+    }
+
+    public String getWaktuSelesai() {
+        return waktuSelesai;
+    }
+
+    public void setWaktuSelesai(String waktuSelesai) {
+        this.waktuSelesai = waktuSelesai;
     }
 
     /**

@@ -9,6 +9,7 @@ import eventplanner.exception.OverloadException;
 import eventplanner.model.Committee;
 import eventplanner.model.Event;
 import eventplanner.model.Task;
+import eventplanner.database.*;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
@@ -41,7 +42,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.UUID;
 import javax.swing.DefaultListModel;
 
 
@@ -59,7 +59,18 @@ public class MainFrame extends JFrame {
     // Global State In-Memory
     private final List<Event> daftarEventGlobal = new ArrayList<>();
     private Event eventAktif = null;
-    private static int eventCounter = 1;
+
+    // DAOs
+    private final EventDAO eventDAO = new EventDAO();
+    private final DivisionDAO divisionDAO = new DivisionDAO();
+    private final PanitiaDAO panitiaDAO = new PanitiaDAO();
+    private final TugasDAO tugasDAO = new TugasDAO();
+
+    // Event Date & Time Fields
+    private JTextField txtTanggalMulai;
+    private JTextField txtTanggalSelesai;
+    private JTextField txtWaktuMulai;
+    private JTextField txtWaktuSelesai;
 
     // Left Panel Components (Master View)
     private JTextField txtNewEventName;
@@ -67,6 +78,7 @@ public class MainFrame extends JFrame {
     private JButton btnCreateEvent;
     private JList<String> lstEvents;
     private DefaultListModel<String> eventListModel;
+    private boolean isUpdatingDropdown = false;
 
     // Right Panel Components (Detail View)
     // Event Tab
@@ -129,36 +141,15 @@ public class MainFrame extends JFrame {
         eventListModel = new DefaultListModel<>();
         lstEvents = new JList<>(eventListModel);
 
-        // 1. Create Default Event
-        Event defaultEvent = new Event("Dies Natalis Campus Festival", 15000000.0);
+        // Initialize DatabaseConnection first
+        DatabaseConnection.getInstance();
 
-        // 2. Initialize default divisions, committee, and tasks
-        Division acaraDiv = new AcaraDivision(1000000.0);
-        Division logisticDiv = new LogisticDivision(4000000.0);
-        Division konsumsiDiv = new KonsumsiDivision(5000000.0);
-        try {
-            defaultEvent.tambahDivisi(acaraDiv);
-            defaultEvent.tambahDivisi(logisticDiv);
-            defaultEvent.tambahDivisi(konsumsiDiv);
-        } catch (OverBudgetException e) {
-            // Data awal dijamin cukup
+        // Load initial events from database
+        daftarEventGlobal.addAll(eventDAO.getAllEvents());
+
+        for (Event ev : daftarEventGlobal) {
+            eventListModel.addElement(ev.getEventName());
         }
-
-        Committee comm1 = new Committee("Budi (Staf Acara)", 5);
-        Committee comm2 = new Committee("Siti (Staf Logistik)", 3);
-        Committee comm3 = new Committee("Andi (Staf Konsumsi)", 2);
-        defaultEvent.tambahPanitia(comm1);
-        defaultEvent.tambahPanitia(comm2);
-        defaultEvent.tambahPanitia(comm3);
-
-        defaultEvent.tambahTugas(new Task("Penyusunan Rundown Acara", 3, 0.0));
-        defaultEvent.tambahTugas(new Task("Sewa Sound System & Stage", 2, 3500000.0));
-        defaultEvent.tambahTugas(new Task("Pemesanan Catering Konsumsi", 4, 2000000.0));
-        defaultEvent.tambahTugas(new Task("Dekorasi Panggung Utama", 1, 5000000.0));
-
-        // Add to global state
-        daftarEventGlobal.add(defaultEvent);
-        eventListModel.addElement(defaultEvent.getEventName());
 
         configureLook();
         configureWindow();
@@ -395,18 +386,30 @@ public class MainFrame extends JFrame {
 
         txtNewEventName = createTextField();
         txtNewEventBudget = createTextField();
+        txtTanggalMulai = createTextField();
+        txtTanggalSelesai = createTextField();
+        txtWaktuMulai = createTextField();
+        txtWaktuSelesai = createTextField();
         btnCreateEvent = createPrimaryButton("Registrasi Event");
 
         addFormRow(formPanel, 0, "Nama Event", txtNewEventName);
         addFormRow(formPanel, 1, "Alokasi Anggaran Utama (Rp)", txtNewEventBudget);
-        addFormButton(formPanel, 2, btnCreateEvent);
+        addFormRow(formPanel, 2, "Tanggal Mulai (YYYY-MM-DD)", txtTanggalMulai);
+        addFormRow(formPanel, 3, "Tanggal Selesai (YYYY-MM-DD)", txtTanggalSelesai);
+        addFormRow(formPanel, 4, "Waktu Mulai (HH:MM)", txtWaktuMulai);
+        addFormRow(formPanel, 5, "Waktu Selesai (HH:MM)", txtWaktuSelesai);
+        addFormButton(formPanel, 6, btnCreateEvent);
 
         btnCreateEvent.addActionListener(e -> {
             String name = txtNewEventName.getText().trim();
             String budgetStr = txtNewEventBudget.getText().trim();
+            String tglMulai = txtTanggalMulai.getText().trim();
+            String tglSelesai = txtTanggalSelesai.getText().trim();
+            String wktMulai = txtWaktuMulai.getText().trim();
+            String wktSelesai = txtWaktuSelesai.getText().trim();
 
-            if (name.isEmpty() || budgetStr.isEmpty()) {
-                showWarning("Nama Event dan Alokasi Anggaran Utama wajib diisi!");
+            if (name.isEmpty() || budgetStr.isEmpty() || tglMulai.isEmpty() || tglSelesai.isEmpty() || wktMulai.isEmpty() || wktSelesai.isEmpty()) {
+                showWarning("Semua field event wajib diisi!");
                 return;
             }
 
@@ -418,12 +421,31 @@ public class MainFrame extends JFrame {
                 }
 
                 Event newEvent = new Event(name, budget);
-                daftarEventGlobal.add(newEvent);
-                eventListModel.addElement(newEvent.getEventName());
+                newEvent.setTanggalMulai(tglMulai);
+                newEvent.setTanggalSelesai(tglSelesai);
+                newEvent.setWaktuMulai(wktMulai);
+                newEvent.setWaktuSelesai(wktSelesai);
+
+                // Save to database
+                eventDAO.insertEvent(newEvent);
+
+                // Reload list of events from database
+                daftarEventGlobal.clear();
+                daftarEventGlobal.addAll(eventDAO.getAllEvents());
+
+                // Update list model
+                eventListModel.clear();
+                for (Event ev : daftarEventGlobal) {
+                    eventListModel.addElement(ev.getEventName());
+                }
 
                 // Reset fields
                 txtNewEventName.setText("");
                 txtNewEventBudget.setText("");
+                txtTanggalMulai.setText("");
+                txtTanggalSelesai.setText("");
+                txtWaktuMulai.setText("");
+                txtWaktuSelesai.setText("");
 
                 // Select the new event in the list
                 lstEvents.setSelectedIndex(daftarEventGlobal.size() - 1);
@@ -438,7 +460,14 @@ public class MainFrame extends JFrame {
         eventTable = createTable(eventTableModel);
         eventTable.setAutoCreateRowSorter(true);
 
-        panel.add(formPanel, BorderLayout.WEST);
+        Dimension preferredSize = formPanel.getLayout().preferredLayoutSize(formPanel);
+        formPanel.setPreferredSize(new Dimension(315, preferredSize.height));
+        JScrollPane scrollPane = new JScrollPane(formPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+
+        panel.add(scrollPane, BorderLayout.WEST);
         panel.add(createTablePanel("Rincian Event Terpilih", eventTable, null, null), BorderLayout.CENTER);
         return panel;
     }
@@ -489,20 +518,26 @@ public class MainFrame extends JFrame {
                     return;
                 }
 
+                // Assert biaya >= 0
+                assert cost >= 0 : "Biaya operasional tidak boleh negatif";
+
                 Task task = new Task(name, difficulty, cost);
                 
-                // Panggil method eksekusiTugas dari class divisi terkait
+                // Panggil method eksekusiTugas dari class divisi terkait (validasi sisa kapasitas/anggaran)
                 division.eksekusiTugas(task, committee);
 
-                // Tambahkan tugas ke eventAktif (Root Aggregate)
-                eventAktif.tambahTugas(task);
+                // Simpan Tugas ke Database
+                tugasDAO.insertTugas(task, eventAktif.getEventId());
+                tugasDAO.assignPanitiaToTugas(task.getTaskId(), committee.getCommitteeId());
+
+                // Update data panitia & divisi di Database
+                panitiaDAO.updatePanitia(committee);
+                divisionDAO.updateDivision(division);
                 
-                refreshTaskTable();
-                refreshDivisionTable();
-                refreshCommitteeTable();
+                // Refresh data dari database
+                updateEventSelection(eventAktif);
 
                 clearFields(txtTaskName, txtDifficulty, txtTaskCost);
-                updateSummary();
                 showInfo("Penugasan operasional berhasil ditambahkan!");
             } catch (NumberFormatException ex) {
                 showWarning("Kapasitas beban kerja dan biaya operasional harus berupa angka!");
@@ -510,6 +545,8 @@ public class MainFrame extends JFrame {
                 showWarning("Peringatan Sistem: Beban kerja panitia melebihi batas maksimal.");
             } catch (OverBudgetException ex) {
                 showWarning("Peringatan Sistem: Alokasi anggaran tidak mencukupi.");
+            } catch (AssertionError ex) {
+                showWarning("Kesalahan Validasi: " + ex.getMessage());
             }
         });
 
@@ -528,9 +565,13 @@ public class MainFrame extends JFrame {
             int confirm = JOptionPane.showConfirmDialog(this, "Apakah Anda yakin ingin menghapus penugasan ini?", "Konfirmasi Hapus", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 int modelRow = taskTable.convertRowIndexToModel(selectedViewRow);
-                eventAktif.getDaftarTugas().remove(modelRow);
-                refreshTaskTable();
-                updateSummary();
+                Task task = eventAktif.getDaftarTugas().get(modelRow);
+                
+                // Hapus dari database
+                tugasDAO.deleteTugas(task.getTaskId());
+                
+                // Refresh data dari database
+                updateEventSelection(eventAktif);
                 showInfo("Penugasan berhasil dihapus!");
             }
         });
@@ -567,19 +608,35 @@ public class MainFrame extends JFrame {
                         return;
                     }
 
+                    // Assert biaya >= 0
+                    assert newCost >= 0 : "Biaya operasional tidak boleh negatif";
+
                     task.setTaskName(newName);
                     task.setDifficulty(newDifficulty);
                     task.setTaskCost(newCost);
 
-                    refreshTaskTable();
+                    // Update database
+                    tugasDAO.updateTugas(task);
+
+                    // Refresh data dari database
+                    updateEventSelection(eventAktif);
                     showInfo("Penugasan berhasil diubah!");
                 } catch (NumberFormatException ex) {
                     showWarning("Kapasitas beban kerja dan biaya operasional harus berupa angka!");
+                } catch (AssertionError ex) {
+                    showWarning("Kesalahan Validasi: " + ex.getMessage());
                 }
             }
         });
 
-        panel.add(formPanel, BorderLayout.WEST);
+        Dimension preferredSize = formPanel.getLayout().preferredLayoutSize(formPanel);
+        formPanel.setPreferredSize(new Dimension(315, preferredSize.height));
+        JScrollPane scrollPane = new JScrollPane(formPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+
+        panel.add(scrollPane, BorderLayout.WEST);
         panel.add(createTablePanel("Daftar Penugasan Operasional", taskTable, btnEditTask, btnDeleteTask), BorderLayout.CENTER);
         return panel;
     }
@@ -613,14 +670,19 @@ public class MainFrame extends JFrame {
 
                 Division division = createDivision(type, budget);
 
-                // Daftarkan divisi ke eventAktif (Root Aggregate)
+                // Daftarkan divisi ke eventAktif (Root Aggregate - validasi anggaran)
                 eventAktif.tambahDivisi(division);
 
-                refreshDivisionTable();
-                refreshEventTable();
+                // Simpan divisi ke Database
+                divisionDAO.insertDivision(division, eventAktif.getEventId());
+
+                // Update total budget event di Database
+                eventDAO.updateEvent(eventAktif);
+
+                // Refresh data dari database
+                updateEventSelection(eventAktif);
 
                 clearFields(txtDivisionBudget);
-                updateSummary();
                 showInfo("Divisi berhasil ditambahkan!");
             } catch (NumberFormatException ex) {
                 showWarning("Anggaran harus berupa angka!");
@@ -646,13 +708,17 @@ public class MainFrame extends JFrame {
                 int modelRow = divisionTable.convertRowIndexToModel(selectedViewRow);
                 Division division = eventAktif.getDaftarDivisi().get(modelRow);
                 
-                // Refund division budget to active event total budget
+                // Refund divisi budget ke active event total budget
                 eventAktif.setTotalBudget(eventAktif.getTotalBudget() + division.getAllocatedBudget());
                 
-                eventAktif.getDaftarDivisi().remove(modelRow);
-                refreshDivisionTable();
-                refreshEventTable();
-                updateSummary();
+                // Hapus divisi dari Database
+                divisionDAO.deleteDivision(division.getDivisionId());
+
+                // Update event budget di Database
+                eventDAO.updateEvent(eventAktif);
+
+                // Refresh data dari database
+                updateEventSelection(eventAktif);
                 showInfo("Divisi berhasil dihapus!");
             }
         });
@@ -720,14 +786,17 @@ public class MainFrame extends JFrame {
                     if (typeChanged) {
                         Division newDivision = createDivision(selectedType, newBudget);
                         newDivision.setDivisionId(division.getDivisionId());
-                        eventAktif.getDaftarDivisi().set(modelRow, newDivision);
+                        divisionDAO.updateDivision(newDivision);
                     } else {
                         division.setAllocatedBudget(newBudget);
+                        divisionDAO.updateDivision(division);
                     }
 
-                    refreshDivisionTable();
-                    refreshEventTable();
-                    updateSummary();
+                    // Update event budget di Database
+                    eventDAO.updateEvent(eventAktif);
+
+                    // Refresh data dari database
+                    updateEventSelection(eventAktif);
                     showInfo("Divisi berhasil diubah!");
                 } catch (NumberFormatException ex) {
                     showWarning("Anggaran harus berupa angka!");
@@ -769,13 +838,13 @@ public class MainFrame extends JFrame {
 
                 Committee committee = new Committee(name, maxCapacity);
                 
-                // Daftarkan panitia ke eventAktif (Root Aggregate)
-                eventAktif.tambahPanitia(committee);
+                // Simpan panitia ke Database
+                panitiaDAO.insertPanitia(committee, eventAktif.getEventId());
 
-                refreshCommitteeTable();
+                // Refresh data dari database
+                updateEventSelection(eventAktif);
 
                 clearFields(txtCommitteeName, txtMaxCapacity);
-                updateSummary();
                 showInfo("Panitia berhasil diregistrasi!");
             } catch (NumberFormatException ex) {
                 showWarning("Kapasitas beban kerja harus berupa angka!");
@@ -797,9 +866,13 @@ public class MainFrame extends JFrame {
             int confirm = JOptionPane.showConfirmDialog(this, "Apakah Anda yakin ingin menghapus panitia ini?", "Konfirmasi Hapus", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 int modelRow = committeeTable.convertRowIndexToModel(selectedViewRow);
-                eventAktif.getDaftarPanitia().remove(modelRow);
-                refreshCommitteeTable();
-                updateSummary();
+                Committee committee = eventAktif.getDaftarPanitia().get(modelRow);
+                
+                // Hapus panitia dari Database
+                panitiaDAO.deletePanitia(committee.getCommitteeId());
+
+                // Refresh data dari database
+                updateEventSelection(eventAktif);
                 showInfo("Panitia berhasil dihapus!");
             }
         });
@@ -841,7 +914,11 @@ public class MainFrame extends JFrame {
                     committee.setName(newName);
                     committee.setMaxCapacity(newCapacity);
 
-                    refreshCommitteeTable();
+                    // Update panitia di Database
+                    panitiaDAO.updatePanitia(committee);
+
+                    // Refresh data dari database
+                    updateEventSelection(eventAktif);
                     showInfo("Panitia berhasil diubah!");
                 } catch (NumberFormatException ex) {
                     showWarning("Kapasitas beban kerja harus berupa angka!");
@@ -886,6 +963,36 @@ public class MainFrame extends JFrame {
 
         btnExecute.addActionListener(e -> executeTask());
         btnReport.addActionListener(e -> showEventReport());
+
+        // Reactive Selection Listeners for Task and Committee
+        cmbExecuteTask.addActionListener(e -> {
+            if (isUpdatingDropdown || eventAktif == null) return;
+            Task selectedTask = (Task) cmbExecuteTask.getSelectedItem();
+            if (selectedTask == null) return;
+
+            isUpdatingDropdown = true;
+            List<Committee> suitablePanitia = panitiaDAO.getPanitiaForTaskExecution(eventAktif.getEventId(), selectedTask.getDifficulty());
+            cmbExecuteCommittee.removeAllItems();
+            for (Committee comm : suitablePanitia) {
+                cmbExecuteCommittee.addItem(comm);
+            }
+            isUpdatingDropdown = false;
+        });
+
+        cmbExecuteCommittee.addActionListener(e -> {
+            if (isUpdatingDropdown || eventAktif == null) return;
+            Committee selectedComm = (Committee) cmbExecuteCommittee.getSelectedItem();
+            if (selectedComm == null) return;
+
+            isUpdatingDropdown = true;
+            int remainingCapacity = selectedComm.getMaxCapacity() - selectedComm.getCurrentWorkload();
+            List<Task> suitableTasks = tugasDAO.getUnassignedTugasForCommittee(eventAktif.getEventId(), remainingCapacity);
+            cmbExecuteTask.removeAllItems();
+            for (Task task : suitableTasks) {
+                cmbExecuteTask.addItem(task);
+            }
+            isUpdatingDropdown = false;
+        });
 
         panel.add(formPanel, BorderLayout.WEST);
         panel.add(createOutputPanel(), BorderLayout.CENTER);
@@ -1119,8 +1226,13 @@ public class MainFrame extends JFrame {
                             + " / " + committee.getMaxCapacity()
             );
 
-            refreshDivisionTable();
-            refreshCommitteeTable();
+            // Update database records
+            tugasDAO.assignPanitiaToTugas(task.getTaskId(), committee.getCommitteeId());
+            panitiaDAO.updatePanitia(committee);
+            divisionDAO.updateDivision(division);
+
+            // Reload DB state
+            updateEventSelection(eventAktif);
             showInfo("Tugas berhasil dieksekusi!");
         } catch (OverloadException ex) {
             showWarning("Peringatan Sistem: Beban kerja panitia melebihi batas maksimal.");
@@ -1162,10 +1274,14 @@ public class MainFrame extends JFrame {
         if (taskTableModel != null) {
             taskTableModel.setRowCount(0);
         }
+        isUpdatingDropdown = true;
         if (cmbExecuteTask != null) {
             cmbExecuteTask.removeAllItems();
         }
-        if (eventAktif == null) return;
+        if (eventAktif == null) {
+            isUpdatingDropdown = false;
+            return;
+        }
         List<Task> listTugas = eventAktif.getDaftarTugas();
         for (int i = 0; i < listTugas.size(); i++) {
             Task task = listTugas.get(i);
@@ -1186,6 +1302,7 @@ public class MainFrame extends JFrame {
                 cmbExecuteTask.addItem(task);
             }
         }
+        isUpdatingDropdown = false;
     }
 
     private void refreshDivisionTable() {
@@ -1223,13 +1340,17 @@ public class MainFrame extends JFrame {
         if (committeeTableModel != null) {
             committeeTableModel.setRowCount(0);
         }
+        isUpdatingDropdown = true;
         if (cmbExecuteCommittee != null) {
             cmbExecuteCommittee.removeAllItems();
         }
         if (cmbTaskCommittee != null) {
             cmbTaskCommittee.removeAllItems();
         }
-        if (eventAktif == null) return;
+        if (eventAktif == null) {
+            isUpdatingDropdown = false;
+            return;
+        }
         List<Committee> listPanitia = eventAktif.getDaftarPanitia();
         for (int i = 0; i < listPanitia.size(); i++) {
             Committee committee = listPanitia.get(i);
@@ -1247,20 +1368,21 @@ public class MainFrame extends JFrame {
                 cmbTaskCommittee.addItem(committee);
             }
         }
+        isUpdatingDropdown = false;
     }
 
     private void updateSummary() {
         if (lblEventCount != null) {
-            lblEventCount.setText(String.valueOf(daftarEventGlobal.size()));
+            lblEventCount.setText(String.valueOf(eventDAO.getEventCount()));
         }
         if (lblTaskCount != null) {
-            lblTaskCount.setText(eventAktif != null ? String.valueOf(eventAktif.getDaftarTugas().size()) : "0");
+            lblTaskCount.setText(eventAktif != null ? String.valueOf(tugasDAO.getTugasByEvent(eventAktif.getEventId()).size()) : "0");
         }
         if (lblDivisionCount != null) {
-            lblDivisionCount.setText(eventAktif != null ? String.valueOf(eventAktif.getDaftarDivisi().size()) : "0");
+            lblDivisionCount.setText(eventAktif != null ? String.valueOf(divisionDAO.getDivisionsByEvent(eventAktif.getEventId()).size()) : "0");
         }
         if (lblCommitteeCount != null) {
-            lblCommitteeCount.setText(eventAktif != null ? String.valueOf(eventAktif.getDaftarPanitia().size()) : "0");
+            lblCommitteeCount.setText(eventAktif != null ? String.valueOf(panitiaDAO.getPanitiaByEvent(eventAktif.getEventId()).size()) : "0");
         }
     }
 
@@ -1414,6 +1536,19 @@ public class MainFrame extends JFrame {
         setRightPanelEnabled(hasActiveEvent);
 
         if (hasActiveEvent) {
+            // Load Division, Panitia, and Tugas from database for this event
+            List<Division> divisions = divisionDAO.getDivisionsByEvent(selectedEvent.getEventId());
+            List<Committee> committees = panitiaDAO.getPanitiaByEvent(selectedEvent.getEventId());
+            List<Task> tasks = tugasDAO.getTugasByEvent(selectedEvent.getEventId());
+            
+            // Set these lists to the active event
+            selectedEvent.getDaftarDivisi().clear();
+            selectedEvent.getDaftarDivisi().addAll(divisions);
+            selectedEvent.getDaftarPanitia().clear();
+            selectedEvent.getDaftarPanitia().addAll(committees);
+            selectedEvent.getDaftarTugas().clear();
+            selectedEvent.getDaftarTugas().addAll(tasks);
+
             // Populate form event in Right Panel
             if (txtEventId != null) txtEventId.setText("");
             if (txtEventName != null) txtEventName.setText(selectedEvent.getEventName());
