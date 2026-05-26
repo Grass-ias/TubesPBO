@@ -4,6 +4,9 @@ import eventplanner.model.Task;
 import eventplanner.model.Committee;
 import eventplanner.exception.OverloadException;
 import eventplanner.exception.OverBudgetException;
+import java.text.NumberFormat;
+import java.util.Locale;
+import eventplanner.database.DivisionDAO;
 
 /**
  * Kelas abstrak yang merepresentasikan suatu divisi dalam sistem perencana acara kampus.
@@ -67,6 +70,11 @@ public abstract class Division implements Reportable {
      */
     @Override
     public String buatLaporan() {
-        return "Laporan Divisi: " + divisionName + " | Sisa Anggaran: " + allocatedBudget;
+        NumberFormat formatRupiah = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
+        double budget = new DivisionDAO().getSisaAnggaranDivisi(this.divisionId);
+        if (budget < 0) {
+            budget = this.allocatedBudget;
+        }
+        return "Laporan Divisi: " + divisionName + " - Sisa Anggaran: " + formatRupiah.format(budget);
     }
 }

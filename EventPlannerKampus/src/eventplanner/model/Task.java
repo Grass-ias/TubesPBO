@@ -78,6 +78,25 @@ public class Task {
         this.taskCost = taskCost;
     }
 
+    private String idPanitia;
+    private String idDivisi;
+
+    public String getIdPanitia() {
+        return idPanitia;
+    }
+
+    public void setIdPanitia(String idPanitia) {
+        this.idPanitia = idPanitia;
+    }
+
+    public String getIdDivisi() {
+        return idDivisi;
+    }
+
+    public void setIdDivisi(String idDivisi) {
+        this.idDivisi = idDivisi;
+    }
+
     @Override
     public String toString() {
         return "Task{" +
@@ -85,6 +104,8 @@ public class Task {
                 ", taskName='" + taskName + '\'' +
                 ", difficulty=" + difficulty +
                 ", taskCost=" + taskCost +
+                ", idPanitia='" + idPanitia + '\'' +
+                ", idDivisi='" + idDivisi + '\'' +
                 '}';
     }
 }

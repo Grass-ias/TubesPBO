@@ -11,19 +11,64 @@ import java.util.List;
 public class EventDAO {
 
     public void insertEvent(Event event) {
-        String sql = "INSERT INTO tabel_event (id_event, nama_event, total_budget, tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DatabaseConnection.getInstance().getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, event.getEventId());
-            pstmt.setString(2, event.getEventName());
-            pstmt.setDouble(3, event.getTotalBudget());
-            pstmt.setString(4, event.getTanggalMulai());
-            pstmt.setString(5, event.getTanggalSelesai());
-            pstmt.setString(6, event.getWaktuMulai());
-            pstmt.setString(7, event.getWaktuSelesai());
-            pstmt.executeUpdate();
+        String eventSql = "INSERT INTO tabel_event (id_event, nama_event, total_budget, tanggal_mulai, tanggal_selesai, waktu_mulai, waktu_selesai) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String divisionSql = "INSERT INTO tabel_divisi (id_divisi, nama_divisi, allocated_budget, id_event) VALUES (?, ?, ?, ?)";
+        
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getInstance().getConnection();
+            conn.setAutoCommit(false);
+            
+            try (PreparedStatement pstmtEvent = conn.prepareStatement(eventSql)) {
+                pstmtEvent.setString(1, event.getEventId());
+                pstmtEvent.setString(2, event.getEventName());
+                pstmtEvent.setDouble(3, event.getTotalBudget());
+                pstmtEvent.setString(4, event.getTanggalMulai());
+                pstmtEvent.setString(5, event.getTanggalSelesai());
+                pstmtEvent.setString(6, event.getWaktuMulai());
+                pstmtEvent.setString(7, event.getWaktuSelesai());
+                pstmtEvent.executeUpdate();
+            }
+            
+            String[] divisionNames = {
+                "Divisi Acara",
+                "Divisi Humas & Publikasi",
+                "Divisi Perlengkapan & Logistik",
+                "Divisi Konsumsi",
+                "Divisi Keamanan",
+                "Divisi Dokumentasi",
+                "Divisi Sponsorship"
+            };
+            
+            try (PreparedStatement pstmtDiv = conn.prepareStatement(divisionSql)) {
+                for (String name : divisionNames) {
+                    pstmtDiv.setString(1, java.util.UUID.randomUUID().toString());
+                    pstmtDiv.setString(2, name);
+                    pstmtDiv.setDouble(3, 0.0);
+                    pstmtDiv.setString(4, event.getEventId());
+                    pstmtDiv.addBatch();
+                }
+                pstmtDiv.executeBatch();
+            }
+            
+            conn.commit();
         } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
             e.printStackTrace();
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 

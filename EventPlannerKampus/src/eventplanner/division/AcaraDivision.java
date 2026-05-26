@@ -4,6 +4,8 @@ import eventplanner.model.Task;
 import eventplanner.model.Committee;
 import eventplanner.exception.OverloadException;
 import eventplanner.exception.OverBudgetException;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 /**
  * Subkelas yang merepresentasikan Divisi Acara.
@@ -41,6 +43,6 @@ public class AcaraDivision extends Division {
 
     @Override
     public String buatLaporan() {
-        return super.buatLaporan() + " | Tipe: Acara (Validasi beban kerja)";
+        return super.buatLaporan();
     }
 }

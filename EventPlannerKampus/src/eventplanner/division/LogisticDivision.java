@@ -4,6 +4,8 @@ import eventplanner.model.Task;
 import eventplanner.model.Committee;
 import eventplanner.exception.OverloadException;
 import eventplanner.exception.OverBudgetException;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 /**
  * Subkelas yang merepresentasikan Divisi Logistik.
@@ -30,19 +32,20 @@ public class LogisticDivision extends Division {
      */
     @Override
     public void eksekusiTugas(Task task, Committee committee) throws OverloadException, OverBudgetException {
-        if (task.getTaskCost() > this.allocatedBudget) {
+        double sisaAnggaran = new eventplanner.database.DivisionDAO().getSisaAnggaranDivisi(this.divisionId);
+        if (sisaAnggaran < 0) {
+            sisaAnggaran = this.allocatedBudget;
+        }
+        if (task.getTaskCost() > sisaAnggaran) {
             throw new OverBudgetException("Budget tidak mencukupi");
         }
         
         // Menugaskan tugas kepada panitia (dapat melemparkan OverloadException)
         committee.tambahBebanKerja(task);
-        
-        // Pengurangan anggaran divisi
-        this.allocatedBudget -= task.getTaskCost();
     }
 
     @Override
     public String buatLaporan() {
-        return super.buatLaporan() + " | Tipe: Logistik (Validasi anggaran)";
+        return super.buatLaporan();
     }
 }

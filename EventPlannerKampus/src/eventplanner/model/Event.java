@@ -129,12 +129,22 @@ public class Event {
      * @return String laporan acara
      */
     public String buatLaporanAcara() {
+        double totalAllocated = 0;
+        for (Division div : daftarDivisi) {
+            double budget = new eventplanner.database.DivisionDAO().getBudgetById(div.getDivisionId());
+            if (budget < 0) {
+                budget = div.getAllocatedBudget();
+            }
+            totalAllocated += budget;
+        }
+        double sisaBudget = totalBudget - totalAllocated;
+
         StringBuilder sb = new StringBuilder();
         sb.append("==================================================\n");
         sb.append("               LAPORAN ACARA KAMPUS               \n");
         sb.append("==================================================\n");
         sb.append("Nama Event        : ").append(eventName).append("\n");
-        sb.append("Sisa Total Budget : ").append(String.format("Rp %,.0f", totalBudget)).append("\n");
+        sb.append("Sisa Total Budget : ").append(String.format("Rp %,.0f", sisaBudget)).append("\n");
         sb.append("--------------------------------------------------\n");
         sb.append("Detail Laporan per Divisi:\n");
         if (daftarDivisi.isEmpty()) {
@@ -144,8 +154,54 @@ public class Event {
                 sb.append(" - ").append(div.buatLaporan()).append("\n");
             }
         }
+        sb.append("--------------------------------------------------\n");
+        sb.append("Laporan Kontribusi Panitia:\n");
+        if (daftarPanitia.isEmpty()) {
+            sb.append(" - (Belum ada panitia yang terdaftar)\n");
+        } else {
+            for (Committee c : daftarPanitia) {
+                int count = 0;
+                for (Task t : daftarTugas) {
+                    if (t.getIdPanitia() != null && t.getIdPanitia().equals(c.getCommitteeId())) {
+                        count++;
+                    }
+                }
+                sb.append(" - ").append(c.getName())
+                  .append(": Mengerjakan ").append(count).append(" Tugas (Total Beban: ")
+                  .append(c.getCurrentWorkload()).append("/").append(c.getMaxCapacity()).append(")\n");
+            }
+        }
         sb.append("==================================================");
         return sb.toString();
+    }
+
+    /**
+     * Menghitung status event secara real-time berdasarkan tanggal dan waktu saat ini.
+     * 
+     * @return "Preparation", "On-going", atau "Finished"
+     */
+    public String getStatus() {
+        if (tanggalMulai == null || tanggalSelesai == null || waktuMulai == null || waktuSelesai == null ||
+            tanggalMulai.isEmpty() || tanggalSelesai.isEmpty() || waktuMulai.isEmpty() || waktuSelesai.isEmpty()) {
+            return "Preparation";
+        }
+        try {
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+            java.time.LocalDateTime waktuMulaiEvent = java.time.LocalDateTime.parse(tanggalMulai.trim() + " " + waktuMulai.trim(), formatter);
+            java.time.LocalDateTime waktuSelesaiEvent = java.time.LocalDateTime.parse(tanggalSelesai.trim() + " " + waktuSelesai.trim(), formatter);
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+            if (now.isBefore(waktuMulaiEvent)) {
+                return "Preparation";
+            } else if (!now.isBefore(waktuMulaiEvent) && !now.isAfter(waktuSelesaiEvent)) {
+                return "On-going";
+            } else {
+                return "Finished";
+            }
+        } catch (Exception e) {
+            System.err.println("Gagal mengurai tanggal event: " + eventName + ". " + e.getMessage());
+            return "Preparation";
+        }
     }
 
     // Pengakses (Getter) dan Pengubah (Setter)
